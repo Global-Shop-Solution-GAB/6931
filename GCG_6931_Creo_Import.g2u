@@ -1,0 +1,565 @@
+﻿Program.Sub.ScreenSU.Start
+Gui.FormBomImport..Create(BaseForm)
+Gui.FormBomImport..Caption("Creo to BOM Compare File Conversion")
+Gui.FormBomImport..Size(6525,1515)
+Gui.FormBomImport..MinX(0)
+Gui.FormBomImport..MinY(0)
+Gui.FormBomImport..Position(0,0)
+Gui.FormBomImport..BackColor(-2147483633)
+Gui.FormBomImport..MousePointer(0)
+Gui.FormBomImport..Event(UnLoad,FormBomImport_UnLoad)
+Gui.FormBomImport..AlwaysOnTop(False)
+Gui.FormBomImport..FontName("Tahoma")
+Gui.FormBomImport..FontSize(8.25)
+Gui.FormBomImport..ControlBox(True)
+Gui.FormBomImport..MaxButton(True)
+Gui.FormBomImport..MinButton(True)
+Gui.FormBomImport..Moveable(True)
+Gui.FormBomImport..Sizeable(True)
+Gui.FormBomImport..ShowInTaskBar(True)
+Gui.FormBomImport..TitleBar(True)
+Gui.FormBomImport.lblBomImport.Create(Label,"Select Creo csv file to convert",True,5325,255,0,105,225,True,0,"Arial",8,-2147483633,0,0)
+Gui.FormBomImport.lblBomImport.BorderStyle(0)
+Gui.FormBomImport.cmdFileBrowser.Create(Button)
+Gui.FormBomImport.cmdFileBrowser.Size(480,420)
+Gui.FormBomImport.cmdFileBrowser.Position(5745,450)
+Gui.FormBomImport.cmdFileBrowser.Caption("^")
+Gui.FormBomImport.cmdFileBrowser.Event(Click,cmdFileBrowser_Click)
+Gui.FormBomImport.cmdFileBrowser.Enabled(True)
+Gui.FormBomImport.cmdFileBrowser.Visible(True)
+Gui.FormBomImport.cmdFileBrowser.Zorder(0)
+Gui.FormBomImport.cmdFileBrowser.FontName("Tahoma")
+Gui.FormBomImport.cmdFileBrowser.FontSize(8.25)
+Gui.FormBomImport.lvw1.Create(ListView)
+Gui.FormBomImport.lvw1.Size(5550,390)
+Gui.FormBomImport.lvw1.Position(105,465)
+Gui.FormBomImport.lvw1.View(0)
+Gui.FormBomImport.lvw1.Event(OLEDragDrop,lvw1_OLEDragDrop)
+Gui.FormBomImport.lvw1.Enabled(True)
+Gui.FormBomImport.lvw1.Visible(True)
+Gui.FormBomImport.lvw1.Zorder(0)
+Gui.FormBomImport.lvw1.FontName("Tahoma")
+Gui.FormBomImport.lvw1.FontSize(8)
+Gui.FormBomImport.lvw1.Multiselect(False)
+Gui.FormBomImport.lvw1.CheckBoxes(False)
+Program.Sub.ScreenSU.End
+
+Program.Sub.Preflight.Start
+V.Global.bOpen.Declare(Boolean,False)
+V.Global.bRev.Declare(Boolean,False)
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+F.Intrinsic.Control.Try
+	V.Local.sError.Declare(String,"")
+	
+	F.Global.General.ReadOption("070008",0,"0000",V.Global.bRev)
+	
+	'show the form
+	Gui.FormBomImport..Show
+	Gui.FormBomImport..AlwaysOnTop(True)
+	Gui.FormBomImport..AlwaysOnTop(False)
+	
+	F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+		F.Intrinsic.String.Build("Project: {0}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}","GCG_6931_Creo_Import.g2u",V.Ambient.NewLine,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.CallSub(FormBomImport_Unload)
+	F.Intrinsic.Control.EndIf
+Function.Intrinsic.Control.EndTry
+Program.Sub.Main.End
+
+Program.Sub.FormBomImport_UnLoad.Start
+F.Intrinsic.Control.Try
+	V.Local.sError.Declare(String,"")
+	
+	'check to see if connection is still open
+	F.Intrinsic.Control.If(V.Global.bOpen)
+		V.Global.bOpen.Set(False)
+		F.ODBC.Connection!Con.Close
+	F.Intrinsic.Control.EndIf
+	'end the program
+	F.Intrinsic.Control.End
+	
+	F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+		F.Intrinsic.String.Build("Project: {0}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}","GCG_6931_Creo_Import.g2u",V.Ambient.NewLine,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.End
+	F.Intrinsic.Control.EndIf
+Function.Intrinsic.Control.EndTry
+Program.Sub.FormBomImport_UnLoad.End
+
+Program.Sub.lvw1_OLEDragDrop.Start
+F.Intrinsic.Control.Try
+	V.Local.sError.Declare(String,"")
+	
+	'passing file location when user drops file in list view
+	F.Intrinsic.Control.CallSub(Process_Files,"Files",V.Args.Files)
+	
+	F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+		F.Intrinsic.String.Build("Project: {0}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}","GCG_6931_Creo_Import.g2u",V.Ambient.NewLine,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.CallSub(FormBomImport_Unload)
+	F.Intrinsic.Control.EndIf
+Function.Intrinsic.Control.EndTry
+Program.Sub.lvw1_OLEDragDrop.End
+
+Program.Sub.Process_Files.Start
+F.Intrinsic.Control.Try
+	V.Local.sError.Declare(String,"")
+	V.Local.i.Declare(Long,0)
+	V.Local.sFiles.Declare(String,"")
+	V.Local.sMsg.Declare(String,"")
+	V.Local.sFileType.Declare(String,"")
+	V.Local.sFileContent.Declare(String,"")
+	
+	'listview allows multlipe files to be droped in
+	'spliting the argument to process each file seperately
+	F.Intrinsic.String.Split(V.Args.Files,"*!*",V.Local.sFiles)
+	
+	'looping through file liist
+	F.Intrinsic.Control.For(V.Local.i,0,V.Local.sFiles.UBound,1)	
+		V.Local.sFileType.Set(V.Local.sFiles(V.Local.i).Right3)
+		F.Intrinsic.Control.If(V.Local.sFileType.UCase,=,"CSV")
+			F.Intrinsic.File.File2String(V.Local.sFiles(V.Local.i),V.Local.sFileContent)
+			F.Intrinsic.Control.If(V.Local.sFileContent.Length,>,0)
+				F.Intrinsic.UI.InvokeWaitDialog("Building GSSXML file.......................")
+				'calling parse file to convert to a gss format csv file
+				F.Intrinsic.Control.CallSub(Parse_File,"File",V.Local.sFileContent,"FileName",V.Local.sFiles(V.Local.i))
+				F.Intrinsic.UI.CloseWaitDialog
+			F.Intrinsic.Control.EndIf
+		F.Intrinsic.Control.Else
+			'letting user know that the file choosen was not a csv
+			F.Intrinsic.String.Build("{0} file must be a csv to be processed",V.Local.sFiles(V.Local.i),V.Local.sMsg)
+			F.Intrinsic.UI.Msgbox(V.Local.sMsg,"Attention")
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.Next(V.Local.i)
+	
+	F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+		F.Intrinsic.String.Build("Project: {0}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}","GCG_6931_Creo_Import.g2u",V.Ambient.NewLine,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.CallSub(FormBomImport_Unload)
+	F.Intrinsic.Control.EndIf
+Function.Intrinsic.Control.EndTry
+Program.Sub.Process_Files.End
+
+Program.Sub.cmdFileBrowser_Click.Start
+F.Intrinsic.Control.Try
+	V.Local.sError.Declare(String,"")
+	V.Local.sRet.Declare(String,"")
+	
+	'when selecting from the browser only show csv files
+	F.Intrinsic.UI.ShowOpenFileDialog("","CSV [.csv]|*.csv","",V.Local.sRet)
+	'checking to see if a file was chosen
+	F.Intrinsic.Control.If(V.Local.sRet.Length,>,0)
+		'passing file location when user drops file in list view
+		F.Intrinsic.Control.CallSub(Process_Files,"Files",V.Local.sRet)
+	F.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+		F.Intrinsic.String.Build("Project: {0}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}","GCG_6931_Creo_Import.g2u",V.Ambient.NewLine,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.CallSub(FormBomImport_Unload)
+	F.Intrinsic.Control.EndIf
+Function.Intrinsic.Control.EndTry
+Program.Sub.cmdFileBrowser_Click.End
+
+Program.Sub.Parse_File.Start
+F.Intrinsic.Control.Try
+	V.Local.sError.Declare(String,"")
+	v.Local.sBegRow.Declare(String,"")
+	v.Local.sPairSeparator.Declare(String,"")
+	v.Local.sColumnSeparator.Declare(String,"")
+	v.Local.sEndRow.Declare(String,"")
+	V.Local.sEndFile.Declare(String,"")
+	V.Local.sLine.Declare(String,"")
+	v.Local.sPart.Declare(String,"")
+	v.Local.sRev.Declare(String,"")
+	V.Local.iCount.Declare(Long,0)
+	V.Local.i.Declare(Long,0)
+	V.Local.iSeq.Declare(Long,0)
+	V.Local.iLevel.Declare(Long,0)
+	V.Local.sParent.Declare(String,"")
+	V.Local.sSql.Declare(String,"")
+	V.Local.sRet.Declare(String,"")
+	v.Local.sFilePath.Declare(String,"")
+	V.Local.sFileName.Declare(String,"")
+	V.Local.sFile.Declare(String,"")
+	V.Local.sDesc.Declare(String,"")
+	V.Local.sDescExt.Declare(String,"")
+	V.Local.sAltDesc1.Declare(String,"")
+	V.Local.sAltDesc2.Declare(String,"")
+	V.Local.sTopParent.Declare(String,"")
+	V.Local.sLvlParents.Declare(String,"")
+	V.Local.iPrevLvl.Declare(Long,0)
+	V.Local.iNewLvl.Declare(Long,0)
+	V.Local.sPartNo.Declare(String,"")
+	V.Local.sRouter.Declare(String,"")
+	V.Local.sMemo1.Declare(String,"")
+	V.Local.sMemo2.Declare(String,"")
+	V.Local.sBomComment.Declare(String,"")
+	V.Local.sSortCode.Declare(String,"")
+	
+	V.Local.sLvlParents.Redim(0,20)
+	
+	F.Intrinsic.Control.If(V.Caller.LocalGSSTempDir.Right1,=,"\")
+		V.Local.sFilePath.Set(V.Caller.LocalGSSTempDir)
+	F.Intrinsic.Control.Else
+		F.Intrinsic.String.Build("{0}\",V.Caller.LocalGSSTempDir,V.Local.sFilePath)
+	F.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.Control.If(V.DataTable.GSSIMPORT.Exists,=,False)
+		'creating DT for creating GSS XML 
+		F.Data.DataTable.Create("GSSIMPORT",True)
+		F.Data.DataTable.AddColumn("GSSIMPORT","PartNo",String)
+		F.Data.DataTable.AddColumn("GSSIMPORT","Revision",String)
+		F.Data.DataTable.AddColumn("GSSIMPORT","Description",String)
+		F.Data.DataTable.AddColumn("GSSIMPORT","AltDescription1",String)
+		F.Data.DataTable.AddColumn("GSSIMPORT","AltDescription2",String)
+		F.Data.DataTable.AddColumn("GSSIMPORT","DescExtra",String)
+		F.Data.DataTable.AddColumn("GSSIMPORT","Quantity",String)
+		F.Data.DataTable.AddColumn("GSSIMPORT","IssueUM",String)
+		F.Data.DataTable.AddColumn("GSSIMPORT","ConsumptionConv",String)
+		F.Data.DataTable.AddColumn("GSSIMPORT","UM",String)
+		F.Data.DataTable.AddColumn("GSSIMPORT","Cost",String)
+		F.Data.DataTable.AddColumn("GSSIMPORT","Source",String)
+		F.Data.DataTable.AddColumn("GSSIMPORT","Drawing",String)
+		F.Data.DataTable.AddColumn("GSSIMPORT","Leadtime",String)
+		F.Data.DataTable.AddColumn("GSSIMPORT","Level",String)
+		F.Data.DataTable.AddColumn("GSSIMPORT","Location",String)
+		F.Data.DataTable.AddColumn("GSSIMPORT","Memo1",String)
+		F.Data.DataTable.AddColumn("GSSIMPORT","Memo2",String)
+		F.Data.DataTable.AddColumn("GSSIMPORT","Parent",String)
+		F.Data.DataTable.AddColumn("GSSIMPORT","Productline",String)
+		F.Data.DataTable.AddColumn("GSSIMPORT","Sequence",String)
+		F.Data.DataTable.AddColumn("GSSIMPORT","SortCode",String)
+		F.Data.DataTable.AddColumn("GSSIMPORT","Tag",String)
+		F.Data.DataTable.AddColumn("GSSIMPORT","Category",String)
+		F.Data.DataTable.AddColumn("GSSIMPORT","BomComplete",String)
+		F.Data.DataTable.AddColumn("GSSIMPORT","BomComments",String)
+		F.Data.DataTable.AddColumn("GSSIMPORT","Router",String)
+		F.Data.DataTable.AddColumn("GSSIMPORT","Weight",String)
+	F.Intrinsic.Control.Else
+		F.Data.DataTable.DeleteRow("GSSIMPORT")
+		F.Data.DataTable.AcceptChanges("GSSIMPORT")
+	F.Intrinsic.Control.EndIf
+	
+	F.ODBC.Connection!Con.OpenCompanyConnection
+	'Columns in file
+	'PartNo,Revision,Description,AltDescription1,AltDescription2,DescExtra,Quantity,IssueUM,ConsumptionConv,UM,Cost,Source,Drawing,Leadtime,Level,Location,Memo1,Memo2,Parent,Productline,Sequence,SortCode,Tag,Category,BomComplete,BomComments,Router,Weight,Raw Material,Raw Qty
+	'DT created from Creo CSV File
+	F.Data.DataTable.CreateFromCSV("CreoCSV",V.Args.FileName,"String*!*String*!*String*!*String*!*String*!*String*!*Float*!*String*!*String*!*String*!*String*!*String*!*String*!*String*!*Long*!*String*!*String*!*String*!*String*!*String*!*String*!*String*!*String*!*String*!*String*!*String*!*String*!*String*!*String*!*String",True)
+
+	'Parsing through and Populating GSSIMPORT table
+	F.Intrinsic.Control.If(V.DataTable.CreoCSV.RowCount--,<>,-1)
+		F.Intrinsic.Control.For(v.Local.i,0,V.DataTable.CreoCSV.RowCount--,1)
+			F.Intrinsic.Control.If(V.Local.i,=,0)
+				F.Intrinsic.String.Build("{0}_{1}{2}.gssxml",V.DataTable.CreoCSV(V.Local.i).PartNo!FIELDVALTRIM,V.Ambient.Date.FormatMMDDYY,V.Ambient.Now.FormatHHNNSS,V.Local.sFileName)
+				F.Intrinsic.Control.If(V.DataTable.CreoCSV(V.Local.i).Revision!FIELDVALTRIM,=,"-")
+					V.Local.sRev.Set("")
+				F.Intrinsic.Control.Else
+					V.Local.sRev.Set(V.DataTable.CreoCSV(V.Local.i).Revision!FIELDVALTRIM)
+				F.Intrinsic.Control.EndIf
+				V.Local.sTopParent.Set(V.DataTable.CreoCSV(V.Local.i).PartNo!FIELDVALTRIM)
+				F.Intrinsic.Control.If(V.Global.bRev)
+					F.Intrinsic.String.RPad(V.Local.sTopParent," ",17,V.Local.sTopParent)
+					F.Intrinsic.String.Build("{0}{1}",V.Local.sTopParent,V.Local.sRev,V.Local.sTopParent)
+					'escaping special characters so bom compre can read the gssxml file
+					F.Intrinsic.String.Replace(V.Local.sTopParent,"&","&#38;",V.Local.sTopParent)
+					F.Intrinsic.String.Replace(V.Local.sTopParent,"<","&#60;",V.Local.sTopParent)
+					F.Intrinsic.String.Replace(V.Local.sTopParent,">","&#62;",V.Local.sTopParent)
+					F.Intrinsic.String.Replace(V.Local.sTopParent,"'","&#39;",V.Local.sTopParent)
+					F.Intrinsic.String.Replace(V.Local.sTopParent,V.Ambient.DblQuote,"&#34;",V.Local.sTopParent)
+				F.Intrinsic.Control.EndIf
+				V.Local.sLvlParents(0).Set(V.Local.sTopParent)
+				F.Intrinsic.Math.Add(V.Local.iSeq,1,V.Local.iSeq)
+				F.Intrinsic.Math.Sub(V.DataTable.CreoCSV(V.Local.i).Level!FIELDVALLong,1,V.Local.iNewLvl)
+				'escaping special characters so bom compre can read the gssxml file
+				F.Intrinsic.String.Replace(V.DataTable.CreoCSV(V.Local.i).Description!FIELDVALTRIM,"&","&#38;",V.Local.sDesc)
+				F.Intrinsic.String.Replace(V.DataTable.CreoCSV(V.Local.i).AltDescription1!FIELDVALTRIM,"&","&#38;",V.Local.sAltDesc1)
+				F.Intrinsic.String.Replace(V.DataTable.CreoCSV(V.Local.i).AltDescription2!FIELDVALTRIM,"&","&#38;",V.Local.sAltDesc2)
+				F.Intrinsic.String.Replace(V.DataTable.CreoCSV(V.Local.i).DescExtra!FIELDVALTRIM,"&","&#38;",V.Local.sDescExt)
+				F.Intrinsic.String.Replace(V.Local.sDesc,"<","&#60;",V.Local.sDesc)
+				F.Intrinsic.String.Replace(V.Local.sAltDesc1,"<","&#60;",V.Local.sAltDesc1)
+				F.Intrinsic.String.Replace(V.Local.sAltDesc2,"<","&#60;",V.Local.sAltDesc2)
+				F.Intrinsic.String.Replace(V.Local.sDescExt,"<","&#60;",V.Local.sDescExt)
+				F.Intrinsic.String.Replace(V.Local.sDesc,">","&#62;",V.Local.sDesc)
+				F.Intrinsic.String.Replace(V.Local.sAltDesc1,">","&#62;",V.Local.sAltDesc1)
+				F.Intrinsic.String.Replace(V.Local.sAltDesc2,">","&#62;",V.Local.sAltDesc2)
+				F.Intrinsic.String.Replace(V.Local.sDescExt,">","&#62;",V.Local.sDescExt)
+				F.Intrinsic.String.Replace(V.Local.sDesc,"'","&#39;",V.Local.sDesc)
+				F.Intrinsic.String.Replace(V.Local.sAltDesc1,"'","&#39;",V.Local.sAltDesc1)
+				F.Intrinsic.String.Replace(V.Local.sAltDesc2,"'","&#39;",V.Local.sAltDesc2)
+				F.Intrinsic.String.Replace(V.Local.sDescExt,"'","&#39;",V.Local.sDescExt)
+				F.Intrinsic.String.Replace(V.Local.sDesc,V.Ambient.DblQuote,"&#34;",V.Local.sDesc)
+				F.Intrinsic.String.Replace(V.Local.sAltDesc1,V.Ambient.DblQuote,"&#34;",V.Local.sAltDesc1)
+				F.Intrinsic.String.Replace(V.Local.sAltDesc2,V.Ambient.DblQuote,"&#34;",V.Local.sAltDesc2)
+				F.Intrinsic.String.Replace(V.Local.sDescExt,V.Ambient.DblQuote,"&#34;",V.Local.sDescExt)
+				V.Local.sPartNo.Set(V.DataTable.CreoCSV(V.Local.i).PartNo!FIELDVALTRIM)
+				F.Intrinsic.String.Replace(V.Local.sPartNo,"&","&#38;",V.Local.sPartNo)
+				F.Intrinsic.String.Replace(V.Local.sPartNo,"<","&#60;",V.Local.sPartNo)
+				F.Intrinsic.String.Replace(V.Local.sPartNo,">","&#62;",V.Local.sPartNo)
+				F.Intrinsic.String.Replace(V.Local.sPartNo,"'","&#39;",V.Local.sPartNo)
+				F.Intrinsic.String.Replace(V.Local.sPartNo,V.Ambient.DblQuote,"&#34;",V.Local.sPartNo)
+				
+				V.Local.sRouter.Set(V.DataTable.CreoCSV(V.Local.i).Router!FIELDVALTRIM)
+				F.Intrinsic.String.Replace(V.Local.sRouter,"&","&#38;",V.Local.sRouter)
+				F.Intrinsic.String.Replace(V.Local.sRouter,"<","&#60;",V.Local.sRouter)
+				F.Intrinsic.String.Replace(V.Local.sRouter,">","&#62;",V.Local.sRouter)
+				F.Intrinsic.String.Replace(V.Local.sRouter,"'","&#39;",V.Local.sRouter)
+				
+				V.Local.sMemo1.Set(V.DataTable.CreoCSV(V.Local.i).Memo1!FIELDVALTRIM)
+				F.Intrinsic.String.Replace(V.Local.sMemo1,"&","&#38;",V.Local.sMemo1)
+				F.Intrinsic.String.Replace(V.Local.sMemo1,"<","&#60;",V.Local.sMemo1)
+				F.Intrinsic.String.Replace(V.Local.sMemo1,">","&#62;",V.Local.sMemo1)
+				F.Intrinsic.String.Replace(V.Local.sMemo1,"'","&#39;",V.Local.sMemo1)
+				
+				V.Local.sMemo2.Set(V.DataTable.CreoCSV(V.Local.i).Memo2!FIELDVALTRIM)
+				F.Intrinsic.String.Replace(V.Local.sMemo2,"&","&#38;",V.Local.sMemo2)
+				F.Intrinsic.String.Replace(V.Local.sMemo2,"<","&#60;",V.Local.sMemo2)
+				F.Intrinsic.String.Replace(V.Local.sMemo2,">","&#62;",V.Local.sMemo2)
+				F.Intrinsic.String.Replace(V.Local.sMemo2,"'","&#39;",V.Local.sMemo2)
+				
+				V.Local.sBomComment.Set(V.DataTable.CreoCSV(V.Local.i).BomComments!FIELDVALTRIM)
+				F.Intrinsic.String.Replace(V.Local.sBomComment,"&","&#38;",V.Local.sBomComment)
+				F.Intrinsic.String.Replace(V.Local.sBomComment,"<","&#60;",V.Local.sBomComment)
+				F.Intrinsic.String.Replace(V.Local.sBomComment,">","&#62;",V.Local.sBomComment)
+				F.Intrinsic.String.Replace(V.Local.sBomComment,"'","&#39;",V.Local.sBomComment)
+				
+				V.Local.sSortCode.Set(V.DataTable.CreoCSV(V.Local.i).SortCode!FIELDVALTRIM)
+				F.Intrinsic.String.Replace(V.Local.sSortCode,"&","&#38;",V.Local.sSortCode)
+				F.Intrinsic.String.Replace(V.Local.sSortCode,"<","&#60;",V.Local.sSortCode)
+				F.Intrinsic.String.Replace(V.Local.sSortCode,">","&#62;",V.Local.sSortCode)
+				F.Intrinsic.String.Replace(V.Local.sSortCode,"'","&#39;",V.Local.sSortCode)
+				
+				F.Data.DataTable.AddRow("GSSIMPORT","PartNo",V.Local.sPartNo,"Revision",V.Local.sRev,"Description",V.Local.sDesc,"AltDescription1",V.Local.sAltDesc1)
+				F.Data.DataTable.SetValue("GSSIMPORT",V.DataTable.GSSIMPORT.RowCount--,"AltDescription2",V.Local.sAltDesc2,"DescExtra",V.Local.sDescExt,"Quantity",V.DataTable.CreoCSV(V.Local.i).Quantity!FIELDVALTRIM,"IssueUM",V.DataTable.CreoCSV(V.Local.i).IssueUM!FIELDVALTRIM)
+				F.Data.DataTable.SetValue("GSSIMPORT",V.DataTable.GSSIMPORT.RowCount--,"ConsumptionConv",V.DataTable.CreoCSV(V.Local.i).ConsumptionConv!FIELDVALTRIM,"UM",V.DataTable.CreoCSV(V.Local.i).UM!FIELDVALTRIM,"Cost",V.DataTable.CreoCSV(V.Local.i).Cost!FIELDVALTRIM,"Source",V.DataTable.CreoCSV(V.Local.i).Source!FIELDVALTRIM)
+				F.Data.DataTable.SetValue("GSSIMPORT",V.DataTable.GSSIMPORT.RowCount--,"Drawing",V.DataTable.CreoCSV(V.Local.i).Drawing!FIELDVALTRIM,"Leadtime",V.DataTable.CreoCSV(V.Local.i).Leadtime!FIELDVALTRIM,"Level",V.Local.iNewLvl,"Location",V.DataTable.CreoCSV(V.Local.i).Location!FIELDVALTRIM)
+				F.Data.DataTable.SetValue("GSSIMPORT",V.DataTable.GSSIMPORT.RowCount--,"Memo1",V.Local.sMemo1,"Memo2",V.Local.sMemo2,"Parent","","Productline",V.DataTable.CreoCSV(V.Local.i).Productline!FIELDVALTRIM)
+				F.Data.DataTable.SetValue("GSSIMPORT",V.DataTable.GSSIMPORT.RowCount--,"Sequence",V.Local.iSeq,"SortCode",V.Local.sSortCode,"Tag",V.DataTable.CreoCSV(V.Local.i).Tag!FIELDVALTRIM,"Category",V.DataTable.CreoCSV(V.Local.i).Category!FIELDVALTRIM)
+				F.Data.DataTable.SetValue("GSSIMPORT",V.DataTable.GSSIMPORT.RowCount--,"BomComplete",V.DataTable.CreoCSV(V.Local.i).BomComplete!FIELDVALTRIM,"BomComments",V.Local.sBomComment,"Router",V.Local.sRouter,"Weight",V.DataTable.CreoCSV(V.Local.i).Weight!FIELDVALTRIM)
+			F.Intrinsic.Control.Else
+				F.Intrinsic.Math.Add(V.Local.iSeq,1,V.Local.iSeq)
+				'escaping special characters so bom compre can read the gssxml file
+				F.Intrinsic.String.Replace(V.DataTable.CreoCSV(V.Local.i).Description!FIELDVALTRIM,"&","&#38;",V.Local.sDesc)
+				F.Intrinsic.String.Replace(V.DataTable.CreoCSV(V.Local.i).AltDescription1!FIELDVALTRIM,"&","&#38;",V.Local.sAltDesc1)
+				F.Intrinsic.String.Replace(V.DataTable.CreoCSV(V.Local.i).AltDescription2!FIELDVALTRIM,"&","&#38;",V.Local.sAltDesc2)
+				F.Intrinsic.String.Replace(V.DataTable.CreoCSV(V.Local.i).DescExtra!FIELDVALTRIM,"&","&#38;",V.Local.sDescExt)
+				F.Intrinsic.String.Replace(V.Local.sDesc,"<","&#60;",V.Local.sDesc)
+				F.Intrinsic.String.Replace(V.Local.sAltDesc1,"<","&#60;",V.Local.sAltDesc1)
+				F.Intrinsic.String.Replace(V.Local.sAltDesc2,"<","&#60;",V.Local.sAltDesc2)
+				F.Intrinsic.String.Replace(V.Local.sDescExt,"<","&#60;",V.Local.sDescExt)
+				F.Intrinsic.String.Replace(V.Local.sDesc,">","&#62;",V.Local.sDesc)
+				F.Intrinsic.String.Replace(V.Local.sAltDesc1,">","&#62;",V.Local.sAltDesc1)
+				F.Intrinsic.String.Replace(V.Local.sAltDesc2,">","&#62;",V.Local.sAltDesc2)
+				F.Intrinsic.String.Replace(V.Local.sDescExt,">","&#62;",V.Local.sDescExt)
+				F.Intrinsic.String.Replace(V.Local.sDesc,"'","&#39;",V.Local.sDesc)
+				F.Intrinsic.String.Replace(V.Local.sAltDesc1,"'","&#39;",V.Local.sAltDesc1)
+				F.Intrinsic.String.Replace(V.Local.sAltDesc2,"'","&#39;",V.Local.sAltDesc2)
+				F.Intrinsic.String.Replace(V.Local.sDescExt,"'","&#39;",V.Local.sDescExt)
+				F.Intrinsic.String.Replace(V.Local.sDesc,V.Ambient.DblQuote,"&#34;",V.Local.sDesc)
+				F.Intrinsic.String.Replace(V.Local.sAltDesc1,V.Ambient.DblQuote,"&#34;",V.Local.sAltDesc1)
+				F.Intrinsic.String.Replace(V.Local.sAltDesc2,V.Ambient.DblQuote,"&#34;",V.Local.sAltDesc2)
+				F.Intrinsic.String.Replace(V.Local.sDescExt,V.Ambient.DblQuote,"&#34;",V.Local.sDescExt)
+				F.Intrinsic.Control.If(V.DataTable.CreoCSV(V.Local.i).Revision!FIELDVALTRIM,=,"-")
+					V.Local.sRev.Set("")
+				F.Intrinsic.Control.Else
+					V.Local.sRev.Set(V.DataTable.CreoCSV(V.Local.i).Revision!FIELDVALTRIM)
+				F.Intrinsic.Control.EndIf
+				V.Local.sParent.Set(V.DataTable.CreoCSV(V.Local.i).PartNo!FIELDVALTRIM)
+				F.Intrinsic.Control.If(V.Global.bRev)
+					F.Intrinsic.String.RPad(V.Local.sParent," ",17,V.Local.sParent)
+					F.Intrinsic.String.Build("{0}{1}",V.Local.sParent,V.Local.sRev,V.Local.sParent)
+					'escaping special characters so bom compre can read the gssxml file
+					F.Intrinsic.String.Replace(V.Local.sParent,"&","&#38;",V.Local.sParent)
+					F.Intrinsic.String.Replace(V.Local.sParent,"<","&#60;",V.Local.sParent)
+					F.Intrinsic.String.Replace(V.Local.sParent,">","&#62;",V.Local.sParent)
+					F.Intrinsic.String.Replace(V.Local.sParent,"'","&#39;",V.Local.sParent)
+					F.Intrinsic.String.Replace(V.Local.sParent,V.Ambient.DblQuote,"&#34;",V.Local.sParent)
+				F.Intrinsic.Control.EndIf
+				F.Intrinsic.Math.Sub(V.DataTable.CreoCSV(V.Local.i).Level!FIELDVALLong,1,V.Local.iNewLvl)
+				F.Intrinsic.Math.Sub(V.DataTable.CreoCSV(V.Local.i).Level!FIELDVALLong,2,V.Local.iPrevLvl)
+				V.Local.sLvlParents(V.Local.iNewLvl).Set(V.Local.sParent)
+				
+				V.Local.sPartNo.Set(V.DataTable.CreoCSV(V.Local.i).PartNo!FIELDVALTRIM)
+				'escaping special characters so bom compre can read the gssxml file
+				F.Intrinsic.String.Replace(V.Local.sPartNo,"&","&#38;",V.Local.sPartNo)
+				F.Intrinsic.String.Replace(V.Local.sPartNo,"<","&#60;",V.Local.sPartNo)
+				F.Intrinsic.String.Replace(V.Local.sPartNo,">","&#62;",V.Local.sPartNo)
+				F.Intrinsic.String.Replace(V.Local.sPartNo,"'","&#39;",V.Local.sPartNo)
+				
+				V.Local.sRouter.Set(V.DataTable.CreoCSV(V.Local.i).Router!FIELDVALTRIM)
+				F.Intrinsic.String.Replace(V.Local.sRouter,"&","&#38;",V.Local.sRouter)
+				F.Intrinsic.String.Replace(V.Local.sRouter,"<","&#60;",V.Local.sRouter)
+				F.Intrinsic.String.Replace(V.Local.sRouter,">","&#62;",V.Local.sRouter)
+				F.Intrinsic.String.Replace(V.Local.sRouter,"'","&#39;",V.Local.sRouter)
+				
+				V.Local.sMemo1.Set(V.DataTable.CreoCSV(V.Local.i).Memo1!FIELDVALTRIM)
+				F.Intrinsic.String.Replace(V.Local.sMemo1,"&","&#38;",V.Local.sMemo1)
+				F.Intrinsic.String.Replace(V.Local.sMemo1,"<","&#60;",V.Local.sMemo1)
+				F.Intrinsic.String.Replace(V.Local.sMemo1,">","&#62;",V.Local.sMemo1)
+				F.Intrinsic.String.Replace(V.Local.sMemo1,"'","&#39;",V.Local.sMemo1)
+				
+				V.Local.sMemo2.Set(V.DataTable.CreoCSV(V.Local.i).Memo2!FIELDVALTRIM)
+				F.Intrinsic.String.Replace(V.Local.sMemo2,"&","&#38;",V.Local.sMemo2)
+				F.Intrinsic.String.Replace(V.Local.sMemo2,"<","&#60;",V.Local.sMemo2)
+				F.Intrinsic.String.Replace(V.Local.sMemo2,">","&#62;",V.Local.sMemo2)
+				F.Intrinsic.String.Replace(V.Local.sMemo2,"'","&#39;",V.Local.sMemo2)
+				
+				V.Local.sBomComment.Set(V.DataTable.CreoCSV(V.Local.i).BomComments!FIELDVALTRIM)
+				F.Intrinsic.String.Replace(V.Local.sBomComment,"&","&#38;",V.Local.sBomComment)
+				F.Intrinsic.String.Replace(V.Local.sBomComment,"<","&#60;",V.Local.sBomComment)
+				F.Intrinsic.String.Replace(V.Local.sBomComment,">","&#62;",V.Local.sBomComment)
+				F.Intrinsic.String.Replace(V.Local.sBomComment,"'","&#39;",V.Local.sBomComment)
+				
+				V.Local.sSortCode.Set(V.DataTable.CreoCSV(V.Local.i).SortCode!FIELDVALTRIM)
+				F.Intrinsic.String.Replace(V.Local.sSortCode,"&","&#38;",V.Local.sSortCode)
+				F.Intrinsic.String.Replace(V.Local.sSortCode,"<","&#60;",V.Local.sSortCode)
+				F.Intrinsic.String.Replace(V.Local.sSortCode,">","&#62;",V.Local.sSortCode)
+				F.Intrinsic.String.Replace(V.Local.sSortCode,"'","&#39;",V.Local.sSortCode)
+				
+				F.Data.DataTable.AddRow("GSSIMPORT","PartNo",V.Local.sPartNo,"Revision",V.Local.sRev,"Description",V.Local.sDesc,"AltDescription1",V.Local.sAltDesc1)
+				F.Data.DataTable.SetValue("GSSIMPORT",V.DataTable.GSSIMPORT.RowCount--,"AltDescription2",V.Local.sAltDesc2,"DescExtra",V.Local.sDescExt,"Quantity",V.DataTable.CreoCSV(V.Local.i).Quantity!FIELDVALTRIM,"IssueUM",V.DataTable.CreoCSV(V.Local.i).IssueUM!FIELDVALTRIM)
+				F.Data.DataTable.SetValue("GSSIMPORT",V.DataTable.GSSIMPORT.RowCount--,"ConsumptionConv",V.DataTable.CreoCSV(V.Local.i).ConsumptionConv!FIELDVALTRIM,"UM",V.DataTable.CreoCSV(V.Local.i).UM!FIELDVALTRIM,"Cost",V.DataTable.CreoCSV(V.Local.i).Cost!FIELDVALTRIM,"Source",V.DataTable.CreoCSV(V.Local.i).Source!FIELDVALTRIM)
+				F.Data.DataTable.SetValue("GSSIMPORT",V.DataTable.GSSIMPORT.RowCount--,"Drawing",V.DataTable.CreoCSV(V.Local.i).Drawing!FIELDVALTRIM,"Leadtime",V.DataTable.CreoCSV(V.Local.i).Leadtime!FIELDVALTRIM,"Level",V.Local.iNewLvl,"Location",V.DataTable.CreoCSV(V.Local.i).Location!FIELDVALTRIM)
+				F.Data.DataTable.SetValue("GSSIMPORT",V.DataTable.GSSIMPORT.RowCount--,"Memo1",V.Local.sMemo1,"Memo2",V.Local.sMemo2,"Parent",V.Local.sLvlParents(V.Local.iPrevLvl),"Productline",V.DataTable.CreoCSV(V.Local.i).Productline!FIELDVALTRIM)
+				F.Data.DataTable.SetValue("GSSIMPORT",V.DataTable.GSSIMPORT.RowCount--,"Sequence",V.Local.iSeq,"SortCode",V.Local.sSortCode,"Tag",V.DataTable.CreoCSV(V.Local.i).Tag!FIELDVALTRIM,"Category",V.DataTable.CreoCSV(V.Local.i).Category!FIELDVALTRIM)
+				F.Data.DataTable.SetValue("GSSIMPORT",V.DataTable.GSSIMPORT.RowCount--,"BomComplete",V.DataTable.CreoCSV(V.Local.i).BomComplete!FIELDVALTRIM,"BomComments",V.Local.sBomComment,"Router",V.Local.sRouter,"Weight",V.DataTable.CreoCSV(V.Local.i).Weight!FIELDVALTRIM)
+			F.Intrinsic.Control.EndIf
+			
+			F.Intrinsic.Control.If(V.DataTable.CreoCSV(V.Local.i).Raw Material!FieldValTrim,<>,"")
+				F.Intrinsic.Math.Add(V.Local.iSeq,1,V.Local.iSeq)
+'				F.Intrinsic.Math.Add(V.DataTable.CreoCSV(V.Local.i).Level!FieldValLong,1,V.Local.iLevel)
+				V.Local.iLevel.Set(V.DataTable.CreoCSV(V.Local.i).Level!FieldValLong)
+				V.Local.sParent.Set(V.DataTable.CreoCSV(V.Local.i).PartNo!FIELDVALTRIM)
+				F.Intrinsic.Control.If(V.Global.bRev)
+					F.Intrinsic.String.RPad(V.Local.sParent," ",17,V.Local.sParent)
+					F.Intrinsic.String.Build("{0}{1}",V.Local.sParent,V.Local.sRev,V.Local.sParent)
+					'escaping special characters so bom compre can read the gssxml file
+					F.Intrinsic.String.Replace(V.Local.sParent,"&","&#38;",V.Local.sParent)
+					F.Intrinsic.String.Replace(V.Local.sParent,"<","&#60;",V.Local.sParent)
+					F.Intrinsic.String.Replace(V.Local.sParent,">","&#62;",V.Local.sParent)
+					F.Intrinsic.String.Replace(V.Local.sParent,"'","&#39;",V.Local.sParent)
+					F.Intrinsic.String.Replace(V.Local.sParent,V.Ambient.DblQuote,"&#34;",V.Local.sParent)
+				F.Intrinsic.Control.EndIf
+				F.Intrinsic.Control.If(V.DataTable.CreoCSV(V.Local.i).Revision!FIELDVALTRIM,=,"-")
+					V.Local.sRev.Set("")
+				F.Intrinsic.Control.Else
+					V.Local.sRev.Set(V.DataTable.CreoCSV(V.Local.i).Revision!FIELDVALTRIM)
+				F.Intrinsic.Control.EndIf
+				V.Local.sPartNo.Set(V.DataTable.CreoCSV(V.Local.i).Raw Material!FIELDVALTRIM)
+				F.Intrinsic.String.Build("Select Top 1 Product_Line, Description, UM_Inventory, Key_Source From V_Inventory_Mstr Where Part = '{0}'",V.Local.sPartNo.PSQLFriendly,V.Local.sSql)
+				F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSql,V.Local.sRet)
+				F.Intrinsic.String.Split(V.Local.sRet,"*!*",V.Local.sRet)
+				V.Local.sRet.RedimPreserve(0,3)
+				'escaping special characters so bom compre can read the gssxml file
+				F.Intrinsic.String.Replace(V.Local.sPartNo,"&","&#38;",V.Local.sPartNo)
+				F.Intrinsic.String.Replace(V.Local.sPartNo,"<","&#60;",V.Local.sPartNo)
+				F.Intrinsic.String.Replace(V.Local.sPartNo,">","&#62;",V.Local.sPartNo)
+				F.Intrinsic.String.Replace(V.Local.sPartNo,"'","&#39;",V.Local.sPartNo)
+				
+				F.Intrinsic.String.Replace(V.Local.sRet(1),"&","&#38;",V.Local.sRet(1))
+				F.Intrinsic.String.Replace(V.Local.sRet(1),"<","&#60;",V.Local.sRet(1))
+				F.Intrinsic.String.Replace(V.Local.sRet(1),">","&#62;",V.Local.sRet(1))
+				F.Intrinsic.String.Replace(V.Local.sRet(1),"'","&#39;",V.Local.sRet(1))
+				
+
+				F.Data.DataTable.AddRow("GSSIMPORT","PartNo",V.Local.sPartNo,"Revision","","Parent",V.Local.sParent.Trim,"Productline",V.Local.sRet(0).Trim,"Description",V.Local.sRet(1).Trim,"UM",V.Local.sRet(2).Trim,"Source",V.Local.sRet(3).Trim,"Quantity",V.DataTable.CreoCSV(V.Local.i).Raw Qty!FIELDVAL,"Level",V.Local.iNewLvl)
+				V.Local.sRet.Redim(0,0)
+			F.Intrinsic.Control.EndIf
+		F.Intrinsic.Control.Next(v.Local.i)
+
+		'Building GSSXML file
+		f.Intrinsic.StringBuilder.create("EXPORT")
+		
+		'top string required in a GSSXML file.
+		f.Intrinsic.String.Build("<?xml version={1}1.0{1} encoding={1}utf-16{1}?>{0}<Table xmlns:xsd={1}http://www.w3.org/2001/XMLSchema{1} xmlns:xsi={1}http://www.w3.org/2001/XMLSchema-instance{1}>{0}  <Rows>{0}",v.Ambient.NewLine,v.Ambient.DblQuote,v.Local.sLine)
+		f.Intrinsic.stringBuilder.AppendLine("EXPORT",V.Local.sLine)
+		
+		'these strings are the xml data required before a row, between the name and the value of the pair, between two pairs, and end of row.
+		F.Intrinsic.String.Build("    <Row>{0}      <Values>{0}        <NameValuePair>{0}          <Name>",v.Ambient.NewLine,v.Local.sBegRow)
+		f.Intrinsic.String.Build("</Name>{0}          <Value>",v.Ambient.NewLine,v.Local.sPairSeparator)
+		f.Intrinsic.String.Build("</Value>{0}        </NameValuePair>{0}        <NameValuePair>{0}          <Name>",v.Ambient.NewLine,v.Local.sColumnSeparator)
+		f.Intrinsic.String.Build("</Value>{0}        </NameValuePair>{0}      </Values>{0}    </Row>",v.Ambient.NewLine,v.Local.sEndRow)
+		f.Intrinsic.String.Build("  </Rows>{0}</Table>",v.Ambient.NewLine,v.Local.sEndFile)
+		
+		f.Intrinsic.Control.For(v.Local.iCount,0,V.DataTable.GSSIMPORT.RowCount--,1)
+			F.Intrinsic.String.Build("{0}PartNo{1}{2}{3}",v.Local.sBegRow,v.Local.sPairSeparator,V.DataTable.GSSIMPORT(V.Local.iCount).PartNo!FIELDVALTRIM,V.Local.sColumnSeparator,v.Local.sLine)
+			F.Intrinsic.String.Build("{0}Revision{1}{2}{3}",v.Local.sLine,v.Local.sPairSeparator,V.DataTable.GSSIMPORT(V.Local.iCount).Revision!FIELDVALTRIM,V.Local.sColumnSeparator,v.Local.sLine)
+			F.Intrinsic.String.Build("{0}Description{1}{2}{3}",v.Local.sLine,v.Local.sPairSeparator,V.DataTable.GSSIMPORT(V.Local.iCount).Description!FIELDVALTRIM,V.Local.sColumnSeparator,v.Local.sLine)
+			F.Intrinsic.String.Build("{0}AltDescription1{1}{2}{3}",v.Local.sLine,v.Local.sPairSeparator,V.DataTable.GSSIMPORT(V.Local.iCount).AltDescription1!FIELDVALTRIM,V.Local.sColumnSeparator,v.Local.sLine)
+			F.Intrinsic.String.Build("{0}AltDescription2{1}{2}{3}",v.Local.sLine,v.Local.sPairSeparator,V.DataTable.GSSIMPORT(V.Local.iCount).AltDescription2!FIELDVALTRIM,V.Local.sColumnSeparator,v.Local.sLine)
+			F.Intrinsic.String.Build("{0}DescExtra{1}{2}{3}",v.Local.sLine,v.Local.sPairSeparator,V.DataTable.GSSIMPORT(V.Local.iCount).DescExtra!FIELDVALTRIM,V.Local.sColumnSeparator,v.Local.sLine)
+			F.Intrinsic.String.Build("{0}Quantity{1}{2}{3}",v.Local.sLine,v.Local.sPairSeparator,V.DataTable.GSSIMPORT(V.Local.iCount).Quantity!FIELDVALTRIM,V.Local.sColumnSeparator,v.Local.sLine)
+			F.Intrinsic.String.Build("{0}IssueUM{1}{2}{3}",v.Local.sLine,v.Local.sPairSeparator,V.DataTable.GSSIMPORT(V.Local.iCount).IssueUM!FIELDVALTRIM,V.Local.sColumnSeparator,v.Local.sLine)
+			F.Intrinsic.String.Build("{0}ConsumptionConv{1}{2}{3}",v.Local.sLine,v.Local.sPairSeparator,V.DataTable.GSSIMPORT(V.Local.iCount).ConsumptionConv!FIELDVALTRIM,V.Local.sColumnSeparator,v.Local.sLine)
+			F.Intrinsic.String.Build("{0}UM{1}{2}{3}",v.Local.sLine,v.Local.sPairSeparator,V.DataTable.GSSIMPORT(V.Local.iCount).UM!FIELDVALTRIM,V.Local.sColumnSeparator,v.Local.sLine)
+			F.Intrinsic.String.Build("{0}Cost{1}{2}{3}",v.Local.sLine,v.Local.sPairSeparator,V.DataTable.GSSIMPORT(V.Local.iCount).Cost!FIELDVALTRIM,V.Local.sColumnSeparator,v.Local.sLine)
+			F.Intrinsic.String.Build("{0}Source{1}{2}{3}",v.Local.sLine,v.Local.sPairSeparator,V.DataTable.GSSIMPORT(V.Local.iCount).Source!FIELDVALTRIM,V.Local.sColumnSeparator,v.Local.sLine)
+			F.Intrinsic.String.Build("{0}Drawing{1}{2}{3}",v.Local.sLine,v.Local.sPairSeparator,V.DataTable.GSSIMPORT(V.Local.iCount).Drawing!FIELDVALTRIM,V.Local.sColumnSeparator,v.Local.sLine)
+			F.Intrinsic.String.Build("{0}Leadtime{1}{2}{3}",v.Local.sLine,v.Local.sPairSeparator,V.DataTable.GSSIMPORT(V.Local.iCount).Leadtime!FIELDVALTRIM,V.Local.sColumnSeparator,v.Local.sLine)
+			F.Intrinsic.String.Build("{0}Level{1}{2}{3}",v.Local.sLine,v.Local.sPairSeparator,V.DataTable.GSSIMPORT(V.Local.iCount).Level!FIELDVALTRIM,V.Local.sColumnSeparator,v.Local.sLine)
+			F.Intrinsic.String.Build("{0}Location{1}{2}{3}",v.Local.sLine,v.Local.sPairSeparator,V.DataTable.GSSIMPORT(V.Local.iCount).Location!FIELDVALTRIM,V.Local.sColumnSeparator,v.Local.sLine)
+			F.Intrinsic.String.Build("{0}Memo1{1}{2}{3}",v.Local.sLine,v.Local.sPairSeparator,V.DataTable.GSSIMPORT(V.Local.iCount).Memo1!FIELDVALTRIM,V.Local.sColumnSeparator,v.Local.sLine)
+			F.Intrinsic.String.Build("{0}Memo2{1}{2}{3}",v.Local.sLine,v.Local.sPairSeparator,V.DataTable.GSSIMPORT(V.Local.iCount).Memo2!FIELDVALTRIM,V.Local.sColumnSeparator,v.Local.sLine)
+			F.Intrinsic.String.Build("{0}Parent{1}{2}{3}",v.Local.sLine,v.Local.sPairSeparator,V.DataTable.GSSIMPORT(V.Local.iCount).Parent!FIELDVALTRIM,V.Local.sColumnSeparator,v.Local.sLine)
+			F.Intrinsic.String.Build("{0}Productline{1}{2}{3}",v.Local.sLine,v.Local.sPairSeparator,V.DataTable.GSSIMPORT(V.Local.iCount).Productline!FIELDVALTRIM,V.Local.sColumnSeparator,v.Local.sLine)
+			F.Intrinsic.String.Build("{0}Sequence{1}{2}{3}",v.Local.sLine,v.Local.sPairSeparator,V.DataTable.GSSIMPORT(V.Local.iCount).Sequence!FIELDVALTRIM,V.Local.sColumnSeparator,v.Local.sLine)
+			F.Intrinsic.String.Build("{0}SortCode{1}{2}{3}",v.Local.sLine,v.Local.sPairSeparator,V.DataTable.GSSIMPORT(V.Local.iCount).SortCode!FIELDVALTRIM,V.Local.sColumnSeparator,v.Local.sLine)
+			F.Intrinsic.String.Build("{0}Tag{1}{2}{3}",v.Local.sLine,v.Local.sPairSeparator,V.DataTable.GSSIMPORT(V.Local.iCount).Tag!FIELDVALTRIM,V.Local.sColumnSeparator,v.Local.sLine)
+			F.Intrinsic.String.Build("{0}Category{1}{2}{3}",v.Local.sLine,v.Local.sPairSeparator,V.DataTable.GSSIMPORT(V.Local.iCount).Category!FIELDVALTRIM,V.Local.sColumnSeparator,v.Local.sLine)
+			F.Intrinsic.String.Build("{0}BomComplete{1}{2}{3}",v.Local.sLine,v.Local.sPairSeparator,V.DataTable.GSSIMPORT(V.Local.iCount).BomComplete!FIELDVALTRIM,V.Local.sColumnSeparator,v.Local.sLine)
+			F.Intrinsic.String.Build("{0}BomComments{1}{2}{3}",v.Local.sLine,v.Local.sPairSeparator,V.DataTable.GSSIMPORT(V.Local.iCount).BomComments!FIELDVALTRIM,V.Local.sColumnSeparator,v.Local.sLine)
+			F.Intrinsic.String.Build("{0}Router{1}{2}{3}",v.Local.sLine,v.Local.sPairSeparator,V.DataTable.GSSIMPORT(V.Local.iCount).Router!FIELDVALTRIM,V.Local.sColumnSeparator,V.Local.sLine)
+			F.Intrinsic.String.Build("{0}Weight{1}{2}{3}",v.Local.sLine,v.Local.sPairSeparator,V.DataTable.GSSIMPORT(V.Local.iCount).Weight!FIELDVALTRIM,V.Local.sEndRow,V.Local.sLine)
+			F.Intrinsic.StringBuilder.AppendLine("EXPORT",V.Local.sLine)
+		f.Intrinsic.Control.Next(v.Local.iCount)
+
+		'If gssmxl not blank finished building file and launch the file.  This will luanch Bom Compare.  This is done by setting GSS Xbar as the defualt program for gssxml files.
+		f.Intrinsic.Control.If(v.Local.sLine.Trim,<>,"")
+			f.Intrinsic.StringBuilder.AppendLine("EXPORT",V.Local.sEndFile)
+			F.Intrinsic.StringBuilder.ToString("EXPORT",V.Local.sLine)
+			F.Intrinsic.String.Replace(V.Local.sLine,V.ASCII.01,"",V.Local.sLine)
+			F.Intrinsic.String.Replace(V.Local.sLine,V.ASCII.02,"",V.Local.sLine)
+			F.Intrinsic.String.Build("{0}{1}",V.Local.sFilePath,V.Local.sFileName,V.Local.sFile)
+			F.Intrinsic.File.String2File(V.Local.sFile,v.Local.sLine)
+			f.Intrinsic.StringBuilder.Dispose("EXPORT")
+			F.Intrinsic.Task.ShellExec(0,"Open",V.Local.sFile,"","",0)
+		f.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.Else
+		F.Intrinsic.UI.Msgbox("Loading csv is blank","Attention")
+	F.Intrinsic.Control.EndIf
+	F.Data.DataTable.Close("CreoCSV")
+	
+	F.ODBC.Connection!Con.Close
+	
+	F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+		F.Intrinsic.String.Build("Project: {0}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}","GCG_6931_Creo_Import.g2u",V.Ambient.NewLine,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.CallSub(FormBomImport_Unload)
+	F.Intrinsic.Control.EndIf
+Function.Intrinsic.Control.EndTry
+Program.Sub.Parse_File.End
+
+Program.Sub.Comments.Start
+${$5$}$2.0.0.0$}$2
+${$6$}$rking$}$20230331102145845$}$QNdZLVy4bWuiWa9jh1ZTiKHvMPldSPXe2TnUNkoYXg3vu6Ynf4uOnb1FE/8/lQc5LCRRAZkGQXU=
+Program.Sub.Comments.End
