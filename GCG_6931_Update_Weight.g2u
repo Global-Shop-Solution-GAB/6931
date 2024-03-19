@@ -1,0 +1,151 @@
+﻿Program.Sub.Preflight.Start
+V.Global.bRev.Declare(Boolean,False)
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+F.Intrinsic.Control.SetErrorHandler("Main_Err")
+F.Intrinsic.Control.ClearErrors
+
+V.Local.sError.Declare(String,"")
+V.Local.sRow.Declare(String,"")
+V.Local.sFile.Declare(String,"")
+V.Local.sRec.Declare(String,"")
+
+Function.Intrinsic.UI.UsePixels ' Allows you to use Pixels instead of Twips throughout
+
+F.Intrinsic.Control.If(V.Caller.Hook,=,"50312")
+	F.Global.General.ReadOption("070008",0,"0000",V.Global.bRev)
+	F.Intrinsic.String.Build("{0}\{1}",V.Caller.LocalGSSTempDir,V.Passed.Main-PostProcessData-bdf,V.Local.sFile)
+	F.Intrinsic.File.File2String(V.Local.sFile,V.Local.sRow)
+	V.Local.sRec.Set(V.Local.sRow)
+	
+	F.Intrinsic.Control.CallSub(Update_Weight,"Rec",V.Local.sRec)
+	
+	F.Intrinsic.Control.CallSub(Exit)
+	
+F.Intrinsic.Control.Else
+	F.Intrinsic.Control.CallSub(Exit)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("Main_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	F.Intrinsic.String.Build("Project: GCG_6931_Update_Weight.g2u {0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}",V.Ambient.NewLine,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.Intrinsic.Control.CallSub(Exit)
+Function.Intrinsic.Control.EndIf
+Program.Sub.Main.End
+
+Program.Sub.Exit.Start
+F.Intrinsic.Control.SetErrorHandler("Exit_Err")
+F.Intrinsic.Control.ClearErrors
+
+V.Local.sError.Declare(String,"")
+
+F.Intrinsic.Control.End
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("Exit_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	F.Intrinsic.Control.End
+Function.Intrinsic.Control.EndIf
+Program.Sub.Exit.End
+
+Program.Sub.Update_Weight.Start
+F.Intrinsic.Control.SetErrorHandler("Update_Weight_Err")
+F.Intrinsic.Control.ClearErrors
+
+V.Local.sError.Declare(String,"")
+V.Local.sRet.Declare(String,"")
+V.Local.sTitles.Declare(String,"")
+V.Local.sTypes.Declare(String,"")
+V.Local.iCol.Declare(Long,0)
+V.Local.i.Declare(Long,0)
+V.Local.sSql.Declare(String,"")
+V.Local.sPart.Declare(String,"")
+V.Local.bNum.Declare(Boolean,False)
+V.Local.sWeight.Declare(String,"")
+
+V.Local.sRet.Set(V.Args.Rec)
+
+F.Intrinsic.BDF.Load("GAB-BDF","Main-PostProcessData-bdf")
+
+F.Intrinsic.BDF.ReadColumnTitle("GAB-BDF",V.Local.sTitles)
+
+f.Intrinsic.BDF.ReadColumnCount("GAB-BDF",v.Local.iCol)
+f.Intrinsic.Math.Sub(v.Local.iCol,1,v.Local.iCol)
+
+F.Intrinsic.Control.For(V.Local.i,0,V.Local.iCol,1)
+	F.Intrinsic.Control.If(V.Local.i,=,0)
+		V.Local.sTypes.Set("String")
+	F.Intrinsic.Control.Else
+		F.Intrinsic.String.Build("{0}*!*String",V.Local.sTypes,V.Local.sTypes)
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.Next(V.Local.i)
+
+F.Data.DataTable.CreateFromString("BomComp",V.Local.sRet,V.Local.sTitles,V.Local.sTypes,"|~|",V.Ambient.NewLine,True)
+
+F.Data.DataTable.DeleteRow("BomComp",6)
+F.Data.DataTable.DeleteRow("BomComp",5)
+F.Data.DataTable.DeleteRow("BomComp",4)
+F.Data.DataTable.DeleteRow("BomComp",3)
+F.Data.DataTable.DeleteRow("BomComp",2)
+F.Data.DataTable.DeleteRow("BomComp",1)
+F.Data.DataTable.DeleteRow("BomComp",0)
+
+F.Data.DataTable.AcceptChanges("BomComp")
+
+'updating inventory part weight if weight is entered on the Bom Upload.  Weight is an additional column at the end of the BDF
+F.Data.DataView.Create("BomComp","Temp",22,"[Weight] <> ''","")
+
+F.ODBC.Connection!Con.OpenCompanyConnection
+F.Intrinsic.Control.For(V.Local.i,0,V.DataView.BomComp!Temp.RowCount--,1)
+	V.Local.sPart.Set(V.DataView.BomComp!Temp(V.Local.i).PartNo!FieldValTrim)
+	F.Intrinsic.Control.If(V.Global.bRev)
+		F.Intrinsic.String.RPad(V.Local.sPart," ",17,V.Local.sPart)
+		F.Intrinsic.String.Build("{0}{1}",V.Local.sPart,V.DataView.BomComp!Temp(V.Local.i).Revision!FieldValTrim,V.Local.sPart)
+	F.Intrinsic.Control.EndIf
+	V.Local.sWeight.Set(V.DataView.BomComp!Temp(V.Local.i).Weight!FieldVal)
+	F.Intrinsic.Control.If(V.Local.sWeight.IsNumeric)
+		V.Local.sPart.Set(V.Local.sPart.Trim)
+		F.Intrinsic.String.Build("Update INVENTORY_MST2 Set LBS = {0} Where Part = '{1}'",V.Local.sWeight.Float,V.Local.sPart.PSQLFriendly,V.Local.sSql)
+		F.ODBC.Connection!Con.Execute(V.Local.sSql)
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.Next(V.Local.i)
+
+F.Data.DataView.Close("BomComp","Temp")
+
+'Setting Purchase part to Requires_Insp that are used on BOM's
+F.Data.DataView.Create("BomComp","Temp",22,"[Source] = 'P' or [Source] = 'J'","")
+
+F.Intrinsic.Control.For(V.Local.i,0,V.DataView.BomComp!Temp.RowCount--,1)
+	V.Local.sPart.Set(V.DataView.BomComp!Temp(V.Local.i).PartNo!FieldValTrim)
+	F.Intrinsic.Control.If(V.Global.bRev)
+		F.Intrinsic.String.RPad(V.Local.sPart," ",17,V.Local.sPart)
+		F.Intrinsic.String.Build("{0}{1}",V.Local.sPart,V.DataView.BomComp!Temp(V.Local.i).Revision!FieldValTrim,V.Local.sPart)
+	F.Intrinsic.Control.EndIf
+	V.Local.sPart.Set(V.Local.sPart.Trim)
+	F.Intrinsic.String.Build("Update INVENTORY_MST2 Set Requires_Insp = '{0}' Where Part = '{1}'","Y",V.Local.sPart.PSQLFriendly,V.Local.sSql)
+	F.ODBC.Connection!Con.Execute(V.Local.sSql)
+F.Intrinsic.Control.Next(V.Local.i)
+
+F.Data.DataTable.Close("BomComp")
+
+F.ODBC.Connection!Con.Close
+	
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("Update_Weight_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	F.Intrinsic.String.Build("Project: GCG_6931_Update_Weight.g2u {0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}",V.Ambient.NewLine,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.Intrinsic.Control.CallSub(Exit)
+Function.Intrinsic.Control.EndIf
+Program.Sub.Update_Weight.End
+
+Program.Sub.Comments.Start
+${$5$}$20.1.8305.18039$}$1
+${$6$}$rking$}$20221010073134519$}$QNdZLVy4bWuiWa9jh1ZTiKVzNnEzrvL4IPXhzkJ7hrKx9dTbWQ4KGYt4ZvLICU71YxFPXCpJehk=
+Program.Sub.Comments.End
